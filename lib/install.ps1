@@ -559,6 +559,10 @@ function dl_urls($app, $version, $manifest, $bucket, $architecture, $dir, $use_c
             Write-Host " ... " -NoNewline
             $null = mkdir "$dir\_tmp"
             & $extract_fn "$dir\$fname" "$dir\_tmp"
+            if($extract_fn -ne 'extract_7zip') {
+                Write-Host "done." -f Green
+            }
+            Write-Host "Moving files and cleaning up ... " -NoNewline
             Remove-Item "$dir\$fname"
             if ($extract_to) {
                 $null = mkdir "$dir\$extract_to" -force

@@ -18,8 +18,36 @@ function file_requires_7zip($fname) {
 }
 
 function extract_7zip($path, $to, $recurse) {
-    $output = 7z x "$path" -o"$to" -y
-    if($lastexitcode -ne 0) { abort "Exit code was $lastexitcode." }
+    $7zip = "& '$(7zip_path)' x '$path' -o'$to' -y -bso1 -bsp1 -bse1"
+    $fname = fname $path
+    $log = ''
+    Invoke-Expression $7zip | ForEach-Object {
+        $log += "    $_`n"
+        if([String]::IsNullOrWhiteSpace($_)) {
+            # skip blank lines
+            return
+        }
+        if($_.StartsWith('Everything is Ok')) {
+            Write-Host "`rExtracting " -NoNewline
+            Write-Host $fname  -f Cyan -NoNewline
+            Write-Host " ... " -NoNewline
+            Write-Host "done." -f Green
+        } elseif($_ -match '\s+(?<percent>[\d]{1,3}%)\s+\d\s+') {
+            Write-Host "`rExtracting " -NoNewline
+            Write-Host $fname  -f Cyan -NoNewline
+            Write-Host " ... " -NoNewline
+            Write-Host $matches['percent'] -f Cyan -NoNewline
+        }
+    }
+    if($lastexitcode -ne 0) {
+        Write-Host "`n***"
+        debug $log $true
+        Write-Host '***'
+        debug $7zip $true
+        Write-Host '***'
+        error "Extraction failed! (Error $lastexitcode)"
+        abort $(new_issue_msg $app $bucket "extraction with 7zip failed")
+    }
 
     # check for tar
     $tar = (split-path $path -leaf) -replace '\.[^\.]*$', ''
